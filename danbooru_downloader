@@ -20,9 +20,10 @@ re_sub_domain = re.compile('http://.+\.sankaku')
 
 class Danbooru(object):
 	"""docstring for Danbooru"""
-	def __init__(self, domain, query):
+	def __init__(self, domain, query, sub_domain='chan'):
 		super(Danbooru, self).__init__()
 		self.__domain = domain
+		self.__sub_domain = sub_domain
 		self.query = query
 		self.__path = path
 		self.page = 1
@@ -44,14 +45,21 @@ class Danbooru(object):
 		'''
 			return url and raw iamge
 		'''
-		if post.has_key('file_url') and self.check_url(post['file_url']):
+		if post.has_key('file_url'):
 			url = post['file_url']
+			return (url, requests.get(url).content)
+		if post.has_key('jpeg_url'):
+			url = post['jpeg_url']
 			return (url, requests.get(url).content)
 
 		# build & search fill-sized url for sanakakucomplex
 		thumnail_url = post['preview_url']
 		t_url = thumnail_url.replace('/preview/', '/')
-		for sub_domain in ['chan', 'c1', 'c2', 'c3', 'c4']:
+		if self.__sub_domain=='idol':
+			sub_domains = [self.__sub_domain, 'i1', 'i2', 'i3', 'i4']
+		else:
+			sub_domains = [self.__sub_domain, 'c1', 'c2', 'c3', 'c4']
+		for sub_domain in sub_domains:
 			for ext in ['.jpg', '.png', '.gif']:
 				url = re_sub_domain.sub('http://%s.sankaku'%sub_domain, t_url)[:-4]+ext
 				responce = requests.get(url)
@@ -68,16 +76,17 @@ if __name__=='__main__':
 	parser.add_argument('-q', '--query', help='search tags (standart danbooru format)', type=str, default='')
 	parser.add_argument('-d', '-p', '--path', help='store path', type=str, default='imgs')
 	parser.add_argument('-c', '--count', help='image count', type=int, default=5)
+	parser.add_argument('-s', '--sub_domain', help='sankakucomplex sub-domain', choices=['chan', 'idol'], default='chan')
 
 	args = vars(parser.parse_args())
-	args['domain'] = 'http://chan.sankakucomplex.com'
+	args['domain'] = 'http://%s.sankakucomplex.com'%args['sub_domain']
 
 	count = args['count']
 	path = args['path']
 	if not os.path.exists(path):
 		os.mkdir(path)
 
-	sankaku = Danbooru(args['domain'], args['query'])
+	sankaku = Danbooru(args['domain'], args['query'], args['sub_domain'])
 	i = 0
 	posts = sankaku.posts()
 	while i<count:
