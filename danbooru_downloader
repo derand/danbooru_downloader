@@ -89,12 +89,12 @@ if __name__=='__main__':
 	sankaku = Danbooru(args['domain'], args['query'], args['sub_domain'])
 	i = 0
 	posts = sankaku.posts()
-	while i<count:
+	while i<count or count==-1:
 		post = posts[0]
 		(url, content) = sankaku.full_size_url(post)
 		del posts[0]
 		if len(url) and content!=None:
-			print "%s => %s"%(post['preview_url'], url)
+			print '[%d] %s => %s'%(i+1,post['preview_url'], url)
 			f = open('%s/%s.%s'%(path, post['md5'], url[-3:]), 'wb')
 			f.write(content)
 			f.close()

@@ -8,4 +8,10 @@ Usage examples:
 
 store to your *Desktop* folder *60* most popular images with *"vocaloid"* tag
 
+
+    danbooru_downloader -s idol -c -1
+
+download to *imgs* folder all images from idol.sankakukomplex.com
+
+
 [1]:http://chan.sankakucomplex.com/help/api
