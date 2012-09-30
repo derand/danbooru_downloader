@@ -6,7 +6,7 @@ __author__ = 'Andrey Derevyagin'
 __maintainer__ = 'Andrey Derevyagin'
 __email__ = '2derand+downloader@gmail.com'
 __copyright__ = 'Copyright © 2012, Andrey Derevyagin'
-__license__ = 'Use this code us you want'
+__license__ = 'Use this code as you want'
 
 
 import requests
