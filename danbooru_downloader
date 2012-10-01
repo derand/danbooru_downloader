@@ -20,10 +20,9 @@ re_sub_domain = re.compile('http://.+\.sankaku')
 
 class Danbooru(object):
 	"""docstring for Danbooru"""
-	def __init__(self, domain, query, sub_domain='chan'):
+	def __init__(self, domain, query):
 		super(Danbooru, self).__init__()
 		self.__domain = domain
-		self.__sub_domain = sub_domain
 		self.query = query
 		self.__path = path
 		self.page = 1
@@ -52,19 +51,21 @@ class Danbooru(object):
 			url = post['jpeg_url']
 			return (url, requests.get(url).content)
 
-		# build & search fill-sized url for sanakakucomplex
-		thumnail_url = post['preview_url']
-		t_url = thumnail_url.replace('/preview/', '/')
-		if self.__sub_domain=='idol':
-			sub_domains = [self.__sub_domain, 'i1', 'i2', 'i3', 'i4']
-		else:
-			sub_domains = [self.__sub_domain, 'c1', 'c2', 'c3', 'c4']
-		for sub_domain in sub_domains:
-			for ext in ['.jpg', '.png', '.gif']:
-				url = re_sub_domain.sub('http://%s.sankaku'%sub_domain, t_url)[:-4]+ext
-				responce = requests.get(url)
-				if responce.status_code==200:
-					return (url, responce.content)
+		# build & search full-sized url for sanakakucomplex
+		if self.__domain.find('sankaku')>-1:
+			thumnail_url = post['preview_url']
+			t_url = thumnail_url.replace('/preview/', '/')
+			sub_domain = self.__domain[self.__domain.find('://')+3]
+			if sub_domain=='i':
+				sub_domains = ['idol', 'i1', 'i2', 'i3', 'i4']
+			else:
+				sub_domains = ['chan', 'c1', 'c2', 'c3', 'c4']
+			for sub_domain in sub_domains:
+				for ext in ['.jpg', '.png', '.gif']:
+					url = re_sub_domain.sub('http://%s.sankaku'%sub_domain, t_url)[:-4]+ext
+					responce = requests.get(url)
+					if responce.status_code==200:
+						return (url, responce.content)
 		return ('', None)
 
 
@@ -74,33 +75,34 @@ if __name__=='__main__':
 		description='Downloader from imageboards with danbooru engine.',
 		epilog='')
 	parser.add_argument('-q', '--query', help='search tags (standart danbooru format)', type=str, default='')
-	parser.add_argument('-d', '-p', '--path', help='store path', type=str, default='imgs')
+	parser.add_argument('-p', '--path', help='store path', type=str, default='imgs')
 	parser.add_argument('-c', '--count', help='image count', type=int, default=5)
-	parser.add_argument('-s', '--sub_domain', help='sankakucomplex sub-domain', choices=['chan', 'idol'], default='chan')
+	parser.add_argument('-d', '--domain', help='danbooru board domain (default: http://chan.sankakucomplex.com)',
+						 default='http://chan.sankakucomplex.com')
 
 	args = vars(parser.parse_args())
-	args['domain'] = 'http://%s.sankakucomplex.com'%args['sub_domain']
 
 	count = args['count']
 	path = args['path']
 	if not os.path.exists(path):
 		os.mkdir(path)
 
-	sankaku = Danbooru(args['domain'], args['query'], args['sub_domain'])
+	danbooru = Danbooru(args['domain'], args['query'])
 	i = 0
-	posts = sankaku.posts()
-	while i<count or count==-1:
-		post = posts[0]
-		(url, content) = sankaku.full_size_url(post)
-		del posts[0]
-		if len(url) and content!=None:
-			print '[%d] %s => %s'%(i+1,post['preview_url'], url)
-			f = open('%s/%s.%s'%(path, post['md5'], url[-3:]), 'wb')
-			f.write(content)
-			f.close()
-			i += 1
-		if len(posts)==0:
-			posts = sankaku.posts()
+	posts = danbooru.posts()
+	if len(posts)>0:
+		while i<count or count==-1:
+			post = posts[0]
+			(url, content) = danbooru.full_size_url(post)
+			del posts[0]
+			if len(url) and content!=None:
+				print '[%d] %s => %s'%(i+1,post['preview_url'], url)
+				f = open('%s/%s.%s'%(path, post['md5'], url[-3:]), 'wb')
+				f.write(content)
+				f.close()
+				i += 1
 			if len(posts)==0:
-				break
+				posts = danbooru.posts()
+				if len(posts)==0:
+					break
 
